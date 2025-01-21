@@ -1,8 +1,10 @@
+import uuid
 from django.db import models
-from django.contrib.auth.models import User
+from django.conf import settings
 
 class Todo(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='todos')
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='todos')
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
     is_completed = models.BooleanField(default=False)

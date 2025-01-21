@@ -19,7 +19,7 @@ from django.contrib import admin
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/auth/', include('users.urls')),  # Inclure les routes JWT
-    # path('api/', include('todos.urls')),     # Autres routes de l'application
+    path('api/auth/', include('users.urls')),
+    path('api/todos/', include('todos.urls')),
 ]
 

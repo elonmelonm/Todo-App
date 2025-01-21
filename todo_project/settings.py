@@ -45,11 +45,12 @@ INSTALLED_APPS = [
 
     'rest_framework_simplejwt',
     'rest_framework.authtoken',  # Cette ligne peut être supprimée si vous n'avez pas besoin de token d'authentification par défaut
-    # 'books',
+
+    'django_filters',
     # 'drf_yasg',
 
     'users',
-    # 'todos',
+    'todos',
 ]
 
 MIDDLEWARE = [
@@ -105,6 +106,8 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 10,
 }
 
 SIMPLE_JWT = {
