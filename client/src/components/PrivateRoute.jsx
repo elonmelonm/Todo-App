@@ -3,8 +3,10 @@ import { Navigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 
 function PrivateRoute({ children }) {
-  const { user } = useAuth()
-  return user ? children : <Navigate to="/login" replace />
+  const { access, refresh } = useAuth()
+  
+  // Vérifie que les deux tokens sont présents avant de permettre l'accès aux enfants
+  return (access && refresh) ? children : <Navigate to="/login" replace />
 }
 
 export default PrivateRoute
