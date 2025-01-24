@@ -65,8 +65,9 @@ MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
 ]
 
-ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS')
-CORS_ALLOWED_ORIGINS = ALLOWED_ORIGINS.split(',')
+CORS_ALLOWED_ORIGINS = [
+    "https://elonm-todo-app.vercel.app",
+]
 
 ROOT_URLCONF = 'todo_project.urls'
 
