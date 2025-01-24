@@ -67,6 +67,7 @@ MIDDLEWARE = [
 
 CORS_ALLOWED_ORIGINS = [
     "https://elonm-todo-app.vercel.app",
+    "todo-list-app-cx80.onrender.com",
 ]
 
 ROOT_URLCONF = 'todo_project.urls'
