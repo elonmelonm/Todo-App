@@ -38,7 +38,7 @@ deactivate () {
 # unset irrelevant variables
 deactivate nondestructive
 
-VIRTUAL_ENV=/home/elonm/Documents/dev/todoApp/todo_project/todoenv
+VIRTUAL_ENV=/home/elonm/Documents/dev/todoApp/todo_project/server/todoenv
 export VIRTUAL_ENV
 
 _OLD_VIRTUAL_PATH="$PATH"
