@@ -1,131 +1,205 @@
-import React, { useState, useEffect } from 'react'
-import { useTodos } from '../contexts/TodoContext'
-import { useAuth } from '../contexts/AuthContext'
-import { Plus, Star, Check, LogOut, ListFilter, Clock, Pencil, Trash2, X, User, ChevronDown } from 'lucide-react'
+import React, { useState, useEffect } from 'react';
+import { useTodos } from '../contexts/TodoContext';
+import { useAuth } from '../contexts/AuthContext';
+import { Plus, Star, Check, LogOut, ListFilter, Clock, Pencil, Trash2, X, User, ChevronDown, CheckCircle } from 'lucide-react';
+import { toast } from 'react-toastify';
+
+// Fonction de confirmation personnalisée
+const confirmToast = (message, onConfirm, onCancel) => {
+  toast(
+    <div>
+      <p>{message}</p>
+      <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: '10px' }}>
+        <button
+          onClick={() => {
+            onConfirm();
+            toast.dismiss();
+          }}
+          style={{ background: 'green', color: 'white', padding: '5px 10px', border: 'none', borderRadius: '5px' }}
+        >
+          Oui
+        </button>
+        <button
+          onClick={() => {
+            onCancel();
+            toast.dismiss();
+          }}
+          style={{ background: 'red', color: 'white', padding: '5px 10px', border: 'none', borderRadius: '5px' }}
+        >
+          Non
+        </button>
+      </div>
+    </div>,
+    {
+      autoClose: false, // Empêche la fermeture automatique
+      closeButton: false, // Masque le bouton de fermeture par défaut
+    }
+  );
+};
 
 function Dashboard() {
-  const { 
-    todos, 
-    categories, 
-    fetchTodos, 
-    fetchCategories, 
-    addTodo, 
+  const {
+    todos,
+    categories,
+    fetchTodos,
+    fetchCategories,
+    addTodo,
     updateTodo,
-    deleteTodo, 
-    toggleTodo,
+    deleteTodo,
+    toggleTodoFavorite,
+    toggleTodoComplete,
     addCategory,
     updateCategory,
-    deleteCategory
-  } = useTodos()
-  const { user, logout, updateProfile } = useAuth()
-  const [newTodo, setNewTodo] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState('')
-  const [newTodoCategory, setNewTodoCategory] = useState('Divers')
-  const [filter, setFilter] = useState('all')
-  const [editingTodo, setEditingTodo] = useState(null)
-  const [editingTodoTitle, setEditingTodoTitle] = useState('')
-  const [sortOrder, setSortOrder] = useState('desc')
-  const [showCategoryModal, setShowCategoryModal] = useState(false)
-  const [showProfileModal, setShowProfileModal] = useState(false)
-  const [newCategoryName, setNewCategoryName] = useState('')
-  const [editingCategory, setEditingCategory] = useState(null)
-  const [showProfileMenu, setShowProfileMenu] = useState(false)
+    deleteCategory,
+    changeTodoCategory
+  } = useTodos();
+  const { user, logout, updateProfile } = useAuth();
+  const [newTodo, setNewTodo] = useState('');
+  const [newTodoDescription, setNewTodoDescription] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [newTodoCategory, setNewTodoCategory] = useState('Divers');
+  const [filter, setFilter] = useState('all');
+  const [editingTodo, setEditingTodo] = useState(null);
+  const [editingTodoTitle, setEditingTodoTitle] = useState('');
+  const [sortOrder, setSortOrder] = useState('desc');
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [editingCategory, setEditingCategory] = useState(null);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [profileData, setProfileData] = useState({
     name: user?.name || '',
     email: user?.email || '',
-  })
+  });
+  // Réorganiser les catégories pour placer "Divers" en premier
+  const sortedCategories = [
+    ...categories.filter((category) => category.name === "Divers"), // Placer "Divers" en premier
+    ...categories.filter((category) => category.name !== "Divers"), // Ajouter les autres catégories
+  ];
 
   useEffect(() => {
-    fetchTodos()
-    fetchCategories()
-  }, [fetchTodos, fetchCategories])
+    fetchTodos();
+    fetchCategories();
+  }, [fetchTodos, fetchCategories]);
 
   const handleProfileUpdate = async (e) => {
-    e.preventDefault()
+    e.preventDefault();
     try {
-      await updateProfile(profileData)
-      setShowProfileModal(false)
+      await updateProfile(profileData);
+      setShowProfileModal(false);
+      toast.success('Profil mis à jour avec succès !');
     } catch (error) {
-      console.error('Error updating profile:', error)
+      console.error('Error updating profile:', error);
+      toast.error('Erreur lors de la mise à jour du profil.');
     }
-  }
+  };
 
   const handleAddTodo = async (e) => {
-    e.preventDefault()
-    if (!newTodo.trim()) return
-    await addTodo({
-      title: newTodo,
-      category: newTodoCategory,
-    })
-    setNewTodo('')
-  }
+    e.preventDefault();
+    if (!newTodo.trim() || !newTodoDescription.trim()) {
+      toast.error('Veuillez remplir tous les champs.');
+      return;
+    }
+
+    try {
+      const selectedCategory = categories.find((cat) => cat.name === newTodoCategory);
+
+      const todoData = {
+        title: newTodo,
+        description: newTodoDescription,
+      };
+
+      if (selectedCategory) {
+        todoData.category = selectedCategory.id;
+      }
+
+      await addTodo(todoData);
+
+      setNewTodo('');
+      setNewTodoDescription('');
+      setNewTodoCategory('Divers');
+    } catch (error) {
+      console.error('Error adding todo:', error);
+    }
+  };
 
   const handleEditTodo = async (todo) => {
-    setEditingTodo(todo.id)
-    setEditingTodoTitle(todo.title)
-  }
+    setEditingTodo(todo.id);
+    setEditingTodoTitle(todo.title);
+  };
 
   const handleUpdateTodo = async () => {
-    if (!editingTodoTitle.trim()) return
-    await updateTodo(editingTodo, { title: editingTodoTitle })
-    setEditingTodo(null)
-    setEditingTodoTitle('')
-  }
+    if (!editingTodoTitle.trim()) {
+      toast.error('Veuillez fournir un titre valide.');
+      return;
+    }
+    try {
+      await updateTodo(editingTodo, { title: editingTodoTitle });
+      setEditingTodo(null);
+      setEditingTodoTitle('');
+    } catch (error) {
+      console.error('Error updating todo:', error);
+    }
+  };
 
   const handleDeleteTodo = async (id) => {
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer cette tâche ?')) {
-      await deleteTodo(id)
-    }
-  }
+    confirmToast(
+      'Êtes-vous sûr de vouloir supprimer cette tâche ?',
+      async () => {
+        try {
+          await deleteTodo(id);
+        } catch (error) {
+          console.error('Error deleting todo:', error);
+        }
+      },
+      () => {
+        toast.info('Suppression annulée.');
+      }
+    );
+  };
 
   const handleAddCategory = async (e) => {
-    e.preventDefault()
-    if (!newCategoryName.trim()) return
-    await addCategory(newCategoryName)
-    setNewCategoryName('')
-    setShowCategoryModal(false)
-  }
-
-  const handleUpdateCategory = async (id, name) => {
-    await updateCategory(id, name)
-    setEditingCategory(null)
-  }
-
-  const handleDeleteCategory = async (id) => {
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer cette catégorie ?')) {
-      await deleteCategory(id)
+    e.preventDefault();
+    if (!newCategoryName.trim()) {
+      toast.error('Veuillez fournir un nom de catégorie.');
+      return;
     }
-  }
+    try {
+      await addCategory(newCategoryName);
+      setNewCategoryName('');
+      setShowCategoryModal(false);
+    } catch (error) {
+      console.error('Error adding category:', error);
+    }
+  };
 
   const filteredTodos = todos
-    .filter(todo => {
-      let passesFilter = true
-
-      switch (filter) {
-        case 'completed':
-          passesFilter = todo.completed
-          break
-        case 'active':
-          passesFilter = !todo.completed
-          break
-        case 'favorite':
-          passesFilter = todo.favorite
-          break
-        default:
-          passesFilter = true
-      }
-
-      if (selectedCategory && passesFilter) {
-        passesFilter = todo.category === selectedCategory
-      }
-
-      return passesFilter
-    })
-    .sort((a, b) => {
-      const dateA = new Date(a.created_at)
-      const dateB = new Date(b.created_at)
-      return sortOrder === 'desc' ? dateB - dateA : dateA - dateB
-    })
+  .filter((todo) => {
+    // Filtre par statut
+    switch (filter) {
+      case 'active':
+        return !todo.is_completed; // Tâches en cours
+      case 'completed':
+        return todo.is_completed; // Tâches terminées
+      case 'favorite':
+        return todo.is_favorite; // Tâches favorites
+      default:
+        return true; // Toutes les tâches
+    }
+  })
+  .filter((todo) => {
+    // Filtre par catégorie
+    if (!selectedCategory) {
+      return true; // Toutes les catégories
+    }
+    return todo.category === selectedCategory; // Filtrer par catégorie sélectionnée
+  })
+  .sort((a, b) => {
+    // Tri par date
+    const dateA = new Date(a.created_at);
+    const dateB = new Date(b.created_at);
+    return sortOrder === 'desc' ? dateB - dateA : dateA - dateB; // Plus récent ou plus ancien
+  });
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -133,7 +207,9 @@ function Dashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-gray-900">Mes tâches</h1>
+            
+            <span className="ml-2 flex text-xl font-bold text-gray-900">Task <CheckCircle className="h-8 w-8 text-indigo-600" /> Master</span>
+              {/* <h1 className="text-2xl font-bold text-gray-900">Mes tâches</h1> */}
             </div>
             <div className="flex items-center space-x-4">
               <button
@@ -189,18 +265,28 @@ function Dashboard() {
                 onChange={(e) => setNewTodo(e.target.value)}
                 placeholder="Nouvelle tâche..."
                 className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                aria-label="Titre de la tâche"
+              />
+              <input
+                type="text"
+                value={newTodoDescription}
+                onChange={(e) => setNewTodoDescription(e.target.value)}
+                placeholder="Description de la tâche..."
+                className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                aria-label="Description de la tâche"
               />
               <select
                 value={newTodoCategory}
                 onChange={(e) => setNewTodoCategory(e.target.value)}
                 className="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                aria-label="Catégorie de la tâche"
               >
-                <option value="Divers">Divers</option>
-                {categories.map((category) => (
-                  <option key={category.id} value={category.name}>
-                    {category.name}
-                  </option>
-                ))}
+                {Array.isArray(categories) &&
+                  sortedCategories.map((category) => (
+                    <option key={category.id} value={category.name}> {/* Utilisez le nom de la catégorie comme valeur */}
+                      {category.name}
+                    </option>
+                  ))}
               </select>
               <button
                 type="submit"
@@ -268,11 +354,12 @@ function Dashboard() {
                 className="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
               >
                 <option value="">Toutes les catégories</option>
-                {categories.map((category) => (
-                  <option key={category.id} value={category.name}>
-                    {category.name}
-                  </option>
-                ))}
+                {Array.isArray(categories) &&
+                  sortedCategories.map((category) => (
+                    <option key={category.id} value={category.id}> {/* Utilisez l'ID de la catégorie comme valeur */}
+                      {category.name}
+                    </option>
+                  ))}
               </select>
             </div>
           </div>
@@ -283,16 +370,16 @@ function Dashboard() {
                 <li key={todo.id}>
                   <div className="px-4 py-4 flex items-center justify-between sm:px-6">
                     <div className="flex items-center flex-1">
-                      <button
-                        onClick={() => toggleTodo(todo.id, 'complete')}
-                        className={`p-1 rounded-full ${
-                          todo.completed
-                            ? 'text-green-600 bg-green-100'
-                            : 'text-gray-400 hover:text-gray-500'
-                        }`}
-                      >
-                        <Check className="h-5 w-5" />
-                      </button>
+                    <button
+                      onClick={() => toggleTodoComplete(todo.id, 'complete')}
+                      className={`p-1 rounded-full ${
+                        todo.is_completed
+                          ? 'text-green-600 bg-green-100' // Style pour les tâches complétées
+                          : 'text-gray-400 hover:bg-green-200' // Style par défaut
+                      }`}
+                    >
+                      <Check className="h-5 w-5" />
+                    </button>
                       <div className="ml-3 flex-1">
                         {editingTodo === todo.id ? (
                           <div className="flex items-center">
@@ -349,29 +436,29 @@ function Dashboard() {
                         )}
                       </div>
                       <select
-                        value={todo.category}
-                        onChange={(e) => updateTodo(todo.id, { category: e.target.value })}
-                        className="ml-4 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                      >
-                        <option value="Divers">Divers</option>
-                        {categories.map((category) => (
-                          <option key={category.id} value={category.name}>
-                            {category.name}
+                      value={todo.category} // Utilisez l'ID de la catégorie comme valeur
+                      onChange={(e) => updateTodo(todo.id, { category: e.target.value })}
+                      className="ml-4 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    >
+                      {Array.isArray(categories) &&
+                        sortedCategories.map((category) => (
+                          <option key={category.id} value={category.id}> {/* Utilisez l'ID comme valeur */}
+                            {category.name} {/* Affichez le nom de la catégorie */}
                           </option>
                         ))}
-                      </select>
+                    </select>
                     </div>
                     <div className="flex items-center ml-4">
-                      <button
-                        onClick={() => toggleTodo(todo.id, 'favorite')}
-                        className={`p-1 rounded-full ${
-                          todo.favorite
-                            ? 'text-yellow-600 bg-yellow-100'
-                            : 'text-gray-400 hover:text-gray-500'
-                        }`}
-                      >
-                        <Star className="h-5 w-5" />
-                      </button>
+                    <button
+                      onClick={() => toggleTodoFavorite(todo.id, 'favorite')} // Appeler toggleTodo avec l'action "favorite"
+                      className={`p-1 rounded-full ${
+                        todo.is_favorite
+                          ? 'text-yellow-600 bg-yellow-100'
+                          : 'text-gray-400 hover:text-gray-500'
+                      }`}
+                    >
+                      <Star className="h-5 w-5" />
+                    </button>
                     </div>
                   </div>
                 </li>
@@ -399,7 +486,7 @@ function Dashboard() {
               <div className="flex gap-2">
                 <input
                   type="text"
-                  value={newCategoryName}
+                  // value={newCategoryName}
                   onChange={(e) => setNewCategoryName(e.target.value)}
                   placeholder="Nouvelle catégorie..."
                   className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
@@ -415,57 +502,62 @@ function Dashboard() {
             </form>
 
             <ul className="divide-y divide-gray-200">
-              {categories.map((category) => (
-                <li key={category.id} className="py-3">
-                  {editingCategory === category.id ? (
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        value={category.name}
-                        onChange={(e) => {
-                          setCategories(prev =>
-                            prev.map(c =>
-                              c.id === category.id ? { ...c, name: e.target.value } : c
-                            )
-                          )
-                        }}
-                        className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                      />
-                      <button
-                        onClick={() => handleUpdateCategory(category.id, category.name)}
-                        className="p-1 text-green-600 hover:text-green-700"
-                      >
-                        <Check className="h-5 w-5" />
-                      </button>
-                      <button
-                        onClick={() => setEditingCategory(null)}
-                        className="p-1 text-red-600 hover:text-red-700"
-                      >
-                        <X className="h-5 w-5" />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-between">
-                      <span>{category.name}</span>
+              {Array.isArray(categories) &&
+                sortedCategories.map((category) => (
+                  <li key={category.id} className="py-3">
+                    {editingCategory === category.id ? (
                       <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={newCategoryName}
+                          onChange={(e) => setNewCategoryName(e.target.value)}
+                          className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        />
                         <button
-                          onClick={() => setEditingCategory(category.id)}
-                          className="p-1 text-gray-400 hover:text-gray-500"
+                          onClick={() => {
+                            updateCategory(category.id, newCategoryName);
+                            setEditingCategory(null);
+                            setNewCategoryName('');
+                          }}
+                          className="p-1 text-green-600 hover:text-green-700"
                         >
-                          <Pencil className="h-4 w-4" />
+                          <Check className="h-5 w-5" />
                         </button>
                         <button
-                          onClick={() => handleDeleteCategory(category.id)}
-                          className="p-1 text-gray-400 hover:text-gray-500"
+                          onClick={() => setEditingCategory(null)}
+                          className="p-1 text-red-600 hover:text-red-700"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <X className="h-5 w-5" />
                         </button>
                       </div>
-                    </div>
-                  )}
-                </li>
-              ))}
+                    ) : (
+                      <div className="flex items-center justify-between">
+                        <span>{category.name}</span>
+                        {category.name !== "Divers" && ( // Masquer les icônes pour "Divers"
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => {
+                                setEditingCategory(category.id);
+                                setNewCategoryName(category.name);
+                              }}
+                              className="p-1 text-gray-400 hover:text-gray-500"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => deleteCategory(category.id)}
+                              className="p-1 text-gray-400 hover:text-gray-500"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </li>
+                ))}
             </ul>
+
           </div>
         </div>
       )}
