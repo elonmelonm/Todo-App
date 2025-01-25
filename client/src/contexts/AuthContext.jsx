@@ -32,12 +32,12 @@ export function AuthProvider({ children }) {
 
     if (token && !isTokenExpired(token)) {
       setAccess(token);
+    } else if (refreshToken && !isTokenExpired(refreshToken)) {
+      refreshTokenHandler(refreshToken);
     } else {
-      if (refreshToken && !isTokenExpired(refreshToken)) {
-        refreshTokenHandler(refreshToken);
-      } else {
-        logout();
-      }
+      // Ne pas appeler logout() ici, sauf si c'est vraiment nécessaire
+      setAccess(null);
+      setRefresh(null);
     }
 
     if (refreshToken) {
@@ -63,7 +63,7 @@ export function AuthProvider({ children }) {
       toast.success('Token rafraîchi avec succès !');
     } catch (error) {
       toast.error('Échec du rafraîchissement du token');
-      logout();
+      logout(false); // Pas de toast ici
     }
   };
 
@@ -99,14 +99,14 @@ export function AuthProvider({ children }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, email, password }),
       });
-  
+
       const data = await response.json(); // Extraire les données de la réponse
-  
+
       if (!response.ok) {
         // Si la réponse n'est pas OK, afficher le message d'erreur du backend
         throw new Error(data.email || 'Registration failed');
       }
-  
+
       // Si l'inscription réussit, afficher un toast de succès
       toast.success('Inscription réussie ! Vous pouvez maintenant vous connecter.');
       navigate('/login');
@@ -117,20 +117,36 @@ export function AuthProvider({ children }) {
     }
   }, [navigate]);
 
-  const logout = useCallback(async () => {
+  const logout = useCallback(async (showToast = true) => {
     const refresh_token = localStorage.getItem('refreshToken');
+    const token = localStorage.getItem('token');
+
+    if (!token && !refresh_token) {
+      // Si aucun token n'est présent, ne pas envoyer de requête de déconnexion
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+      setAccess(null);
+      setRefresh(null);
+      navigate('/');
+      return;
+    }
+
     try {
       await fetch(`${apiUrl}/api/auth/logout/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({ refresh_token }),
       });
-      toast.success('Déconnexion réussie !');
+      if (showToast) {
+        toast.success('Déconnexion réussie !');
+      }
     } catch (error) {
-      toast.error('Échec de la déconnexion');
+      if (showToast) {
+        toast.error('Échec de la déconnexion');
+      }
     } finally {
       localStorage.removeItem('token');
       localStorage.removeItem('refreshToken');
